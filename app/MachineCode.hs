@@ -1,3 +1,13 @@
+-- CPSC 312 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| --
+--                                                                                   --
+--                                                                                   --
+-- PROJECT - SKULLFUCK                                                               --
+-- MachineCode.hs                                 CWL HERE - Illya Vekslyer STDNTNUM --
+--                                                                                   --
+-- ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| --
+
+
+
 -- MachineCode.hs
 
 {-# LANGUAGE TemplateHaskell, QuasiQuotes #-}

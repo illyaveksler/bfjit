@@ -1,5 +1,22 @@
+-- CPSC 312 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| --
+--                                                                                   --
+--                                                                                   --
+-- PROJECT - SKULLFUCK                                                               --
+-- skullfuck.hs                                  aurus (e7q7w) - Angus Chow 10099935 --
+--                                                                                   --
+-- ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| --
+
+
+
 import Data.Bits
 import Data.Char
+
+
+
+brainfuckToML code = bfCodeStringsCompile (bfApplyBackpatchHelper (bfTuplesToStrings (brainfuckToTuples code)))
+
+
+
 
 data BFCommand = IncrPtr
                | DecrPtr
@@ -63,7 +80,10 @@ loopEndToML index = ((fst loopStartCall), (snd loopEndCall), index)
 callMultiple :: (String, Int, Int) -> Int -> (String, Int) -> (String, Int, Int)
 callMultiple result 0 input = result
 callMultiple result count input = 
-                callMultiple (((fst_3 result) ++ (fst input)), ((snd_3 result)+(snd input)), trd_3 result) (count-1) input
+                callMultiple (((fst_3 result) ++ (fst input)), 
+                              ((snd_3 result)+(snd input)), 
+                                trd_3 result) 
+                             (count-1) input
 
 inputCall = (("\x57" ++
               "\x48\xC7\xC0\x01\x00\x00\x00" ++
@@ -141,11 +161,15 @@ brainfuckToTuplesHelper (hi:ti) (hr:tr) (hs:ts)
                                                         ((length (hr:tr)):(hs:ts))
     | ((charToBFC hi) == LoopEnd) = brainfuckToTuplesHelper ti 
                                                         (((charToBFC hi),hs):
-                                                            (bfTuplesReplaceAt (hr:tr) hs (LoopStt, (length (hr:tr)))))
+                                                            (bfTuplesReplaceAt (hr:tr) 
+                                                                                hs 
+                                                                               (LoopStt, (length (hr:tr)))))
                                                         (ts)
     | otherwise = if (fst hr) == (charToBFC hi) 
-                    then brainfuckToTuplesHelper ti (((fst hr),((snd hr)+1)):tr) (hs:ts)
-                    else brainfuckToTuplesHelper ti (((charToBFC hi),1):(hr:tr)) (hs:ts)
+                    then brainfuckToTuplesHelper ti (((fst hr),((snd hr)+1)):tr) 
+                                                    (hs:ts)
+                    else brainfuckToTuplesHelper ti (((charToBFC hi),1):(hr:tr)) 
+                                                    (hs:ts)
 
 
 
@@ -177,8 +201,8 @@ listApplyAtHelper (hs:ts) pos f
 
 
 
-bfTuplesToString [] = ([],[],[])
-bfTuplesToString lst = bfTuplesToStringsHelper (map bfcTupleToML lst) 0 0 ([],[],[])
+bfTuplesToStrings [] = ([],[],[])
+bfTuplesToStrings lst = bfTuplesToStringsHelper (map bfcTupleToML lst) 0 0 ([],[],[])
 
 
 
@@ -187,14 +211,22 @@ bfApplyBackpatchHelper (code, addrs, []) = (code, addrs, [])
 bfApplyBackpatchHelper (code, addrs, (hp:tp)) = 
     bfApplyBackpatchHelper (
                             (listApplyAtHelper code (trd_3 hp) 
-                                               (\x -> x ++ (intToUInt32Bytes ((addrs!!(snd_3 hp)) - (fst_3 hp))))),
+                                               (\x -> x ++ (intToUInt32Bytes 
+                                                            ((addrs!!(snd_3 hp)) -
+                                                             (fst_3 hp))))),
+                                    --                         ^
+                                    -- This index accessing should probably be 
+                                    -- addressed at some point since it's not
+                                    -- exactly safe but hey. if the code works there
+                                    -- should never be a chance for that to fail
                             addrs,
                             tp
                             )
 
 
 
-
+bfCodeStringsCompile ([], _, _) = []
+bfCodeStringsCompile ((hc:tc), _, _) = hc ++ bfCodeStringsCompile (tc, [], [])
 
 
 
@@ -205,6 +237,13 @@ bfTuplesToStringsHelper (ht:tt) cpos cindex (code, addrs, backpatches)
                                                   (addrs ++ [cpos]),
                                                   backpatches)
     | otherwise = bfTuplesToStringsHelper tt (cpos + (snd_3 ht)) (cindex+1)
-                                          ((code ++ [fst_3 ht]),
+                                          (
+                                           (code ++ [fst_3 ht]),
+                                           
                                            (addrs ++ [cpos]),
-                                           (((cpos + (snd_3 ht)),(trd_3 ht),cindex):backpatches))
+                                           
+                                           (((cpos + (snd_3 ht)),
+                                             (trd_3 ht),
+                                              cindex
+                                             ):backpatches)
+                                           )
