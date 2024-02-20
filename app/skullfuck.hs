@@ -62,21 +62,21 @@ brainfuckToTuplesHelper [] out (hs:ts) = []     -- ERROR: MISMATCHED LOOPS
 brainfuckToTuplesHelper (hi:ti) [] []
     | (charToBFC hi) == BFInvalid = brainfuckToTuplesHelper ti 
                                                         []  
-                                                        [] -- SKIP INVALID
+                                                        []      -- SKIP INVALID
     | ((charToBFC hi) == LoopStt) = brainfuckToTuplesHelper ti 
                                                         [((charToBFC hi),0)]         -- TUPLE REPLACED BY CLOSER
                                                         [0]
-    | ((charToBFC hi) == LoopEnd) = []      -- ERROR: MISMATCHED LOOPS
+    | ((charToBFC hi) == LoopEnd) = []                          -- ERROR: MISMATCHED LOOPS
     | otherwise = brainfuckToTuplesHelper ti [((charToBFC hi),1)] []
 
 brainfuckToTuplesHelper (hi:ti) (hr:tr) []
     | (charToBFC hi) == BFInvalid = brainfuckToTuplesHelper ti 
                                                         (hr:tr)
-                                                        [] -- SKIP INVALID
+                                                        []      -- SKIP INVALID
     | ((charToBFC hi) == LoopStt) = brainfuckToTuplesHelper ti 
                                                         (((charToBFC hi),0):(hr:tr)) -- TUPLE REPLACED BY CLOSER
                                                         [(length (hr:tr))]
-    | ((charToBFC hi) == LoopEnd) = []      -- ERROR: MISMATCHED LOOPS
+    | ((charToBFC hi) == LoopEnd) = []                          -- ERROR: MISMATCHED LOOPS
     | otherwise = if (fst hr) == (charToBFC hi) 
                     then brainfuckToTuplesHelper ti (((fst hr),((snd hr)+1)):tr) [] 
                     else brainfuckToTuplesHelper ti (((charToBFC hi),1):(hr:tr)) []
@@ -91,7 +91,7 @@ brainfuckToTuplesHelper (hi:ti) (hr:tr) (hs:ts)
     | ((charToBFC hi) == LoopEnd) = brainfuckToTuplesHelper ti 
                                                         (((charToBFC hi),hs):
                                                             (bfTuplesReplaceAt (hr:tr) 
-                                                                                hs 
+                                                                                hs   -- REPLACE OPENER TUPLE
                                                                                (LoopStt, (length (hr:tr)))))
                                                         (ts)
     | otherwise = if (fst hr) == (charToBFC hi) 
