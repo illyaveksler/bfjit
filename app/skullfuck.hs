@@ -171,19 +171,21 @@ intToUInt32Bytes n = [
     (chr ((quot n 16777216) .&. 255))
     ]
 
+-- read 0, pointer, 1
 inputCall = (("\x57" ++
-              "\x48\xC7\xC0\x01\x00\x00\x00" ++
+              "\x48\xC7\xC0\x00\x00\x00\x00" ++
               "\x48\x89\xFE" ++
-              "\x48\xC7\xC7\x01\x00\x00\x00" ++
+              "\x48\xC7\xC7\x00\x00\x00\x00" ++
               "\x48\xC7\xC2\x01\x00\x00\x00" ++
               "\x0F\x05" ++
               "\x5F"), 
              28)
 
+-- write 1, pointer, 1
 outputCall = (("\x57" ++
-               "\x48\xC7\xC0\x00\x00\x00\x00" ++
+               "\x48\xC7\xC0\x01\x00\x00\x00" ++
                "\x48\x89\xFE" ++
-               "\x48\xC7\xC7\x00\x00\x00\x00" ++
+               "\x48\xC7\xC7\x01\x00\x00\x00" ++
                "\x48\xC7\xC2\x01\x00\x00\x00" ++
                "\x0F\x05" ++
                "\x5F"),
