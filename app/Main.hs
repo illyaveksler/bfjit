@@ -13,11 +13,11 @@ module Main where
 -- import Foreign.Ptr
 -- import Foreign.Marshal.Array
 import MachineCode (printByteString)
-import qualified Data.ByteString.Char8 as C
+import qualified Data.ByteString as BS
 
 removeParenthesesAtEnd :: String -> String
 removeParenthesesAtEnd str =
-  if lastTwoCharacters str == "()" 
+  if lastTwoCharacters str == "()"
     then init (init str)
     else str
   where
@@ -25,7 +25,6 @@ removeParenthesesAtEnd str =
 
 main :: IO ()
 main = do
-    let cString = C.pack "Hello, World!"
-    putStrLn "ByteString:"
-    putStrLn (removeParenthesesAtEnd (show (printByteString cString)))
-    putStrLn "Done!"
+    let bytes = [0x68, 0x61, 0x73, 0x6B, 0x65, 0x6C, 0x6C] -- "haskell\NUL"
+    let bs = BS.pack bytes
+    putStrLn (removeParenthesesAtEnd (show (printByteString bs)))
