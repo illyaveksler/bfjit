@@ -13,22 +13,39 @@
 {-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
 {-# LANGUAGE GHCForeignImportPrim, UnliftedFFITypes, UnboxedTuples #-}
 
-module MachineCode (printByteString) where
+module MachineCode (executeMachineCode) where
 
 import Language.Asm.Inline
 import Language.Asm.Inline.QQ
 import Data.ByteString
-import Data.Word
-
-defineAsmFun "printByteString"
-  [asmTy| (bs : ByteString) | |]
+--   lea {parameter:ptr}, %rsi
+--  After mov {parameter:len}
+defineAsmFun "executeMachineCode"
+  [asmTy| (machineCode : ByteString) (parameter : ByteString) | |]
   [asm|
-  test {bs:len}, {bs:len}
-  jz is_zero
+  test {machineCode:len}, {machineCode:len}
+  jz invalidMachineCode
+
+  mov {parameter:len}, %rdx
   mov $1, %rdi
-  mov {bs:ptr}, %rsi
-  mov {bs:len}, %rdx
+  mov {parameter:ptr}, %rsi
   mov $1, %rax
   syscall
-  is_zero:
+
+  call *{machineCode:ptr}
+  invalidMachineCode:
+  RET_HASK 
   |]
+
+-- defineAsmFun "printByteString"
+--   [asmTy| (bs : ByteString) | |]
+--   [asm|
+--   test {bs:len}, {bs:len}
+--   jz is_zero
+--   mov $1, %rdi
+--   mov {bs:ptr}, %rsi
+--   mov {bs:len}, %rdx
+--   mov $1, %rax
+--   syscall
+--   is_zero:
+--   |]

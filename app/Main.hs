@@ -12,7 +12,7 @@ module Main where
 
 -- import Foreign.Ptr
 -- import Foreign.Marshal.Array
-import MachineCode (printByteString)
+import MachineCode (executeMachineCode)
 import qualified Data.ByteString as BS
 
 removeParenthesesAtEnd :: String -> String
@@ -25,6 +25,13 @@ removeParenthesesAtEnd str =
 
 main :: IO ()
 main = do
-    let bytes = [0x68, 0x61, 0x73, 0x6B, 0x65, 0x6C, 0x6C] -- "haskell\NUL"
-    let bs = BS.pack bytes
-    putStrLn (removeParenthesesAtEnd (show (printByteString bs)))
+    let parameterBytes = [0x68, 0x61, 0x73, 0x6B, 0x65, 0x6C, 0x6C] -- "haskell\NUL"
+    let parameterByteString = BS.pack parameterBytes
+
+    let machineCodeBytes = [0xC3]
+    let machineCodeByteString = BS.pack machineCodeBytes
+  --  0x00000000004000be:  48 c7 c7 01 00 00 00    mov    $0x1,%rdi
+  --  0x00000000004000c5:  48 c7 c0 01 00 00 00    mov    $0x1,%rax
+  --  0x00000000004000cc:  0f 05   syscall 
+  --  0x00000000004000ce:  c3      ret    
+    putStrLn (removeParenthesesAtEnd (show (executeMachineCode machineCodeByteString parameterByteString)))
