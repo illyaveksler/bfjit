@@ -7,7 +7,7 @@
 -- ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| --
 
 
-
+module Skullfuck where
 import Data.Bits
 import Data.Char
 
