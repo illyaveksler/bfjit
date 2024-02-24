@@ -1,51 +1,66 @@
--- CPSC 312 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| --
---                                                                                   --
---                                                                                   --
--- PROJECT - SKULLFUCK                                                               --
--- MachineCode.hs                                 CWL HERE - Illya Vekslyer STDNTNUM --
---                                                                                   --
--- ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| --
 
-
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 
 -- MachineCode.hs
 
-{-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
-{-# LANGUAGE GHCForeignImportPrim, UnliftedFFITypes, UnboxedTuples #-}
-
 module MachineCode (executeMachineCode) where
 
-import Language.Asm.Inline
-import Language.Asm.Inline.QQ
-import Data.ByteString
---   lea {parameter:ptr}, %rsi
---  After mov {parameter:len}
-defineAsmFun "executeMachineCode"
-  [asmTy| (machineCode : ByteString) (parameter : ByteString) | |]
-  [asm|
-  test {machineCode:len}, {machineCode:len}
-  jz invalidMachineCode
+import Foreign.Ptr ( Ptr, FunPtr, castPtrToFunPtr, nullPtr )
+import Foreign.Marshal.Array ( newArray )
 
-  mov {parameter:len}, %rdx
-  mov $1, %rdi
-  mov {parameter:ptr}, %rsi
-  mov $1, %rax
-  syscall
+import Foreign ( Bits((.|.)) )
+import Foreign.C.Types ( CInt(..), CSize(..) )
+import System.Posix.Types ( COff(..) )
 
-  call *{machineCode:ptr}
-  invalidMachineCode:
-  RET_HASK 
-  |]
+foreign import ccall unsafe "sys/mman.h mmap"
+    mmap :: Ptr a -> CSize -> CInt -> CInt -> CInt -> COff -> IO (Ptr ())
 
--- defineAsmFun "printByteString"
---   [asmTy| (bs : ByteString) | |]
---   [asm|
---   test {bs:len}, {bs:len}
---   jz is_zero
---   mov $1, %rdi
---   mov {bs:ptr}, %rsi
---   mov {bs:len}, %rdx
---   mov $1, %rax
---   syscall
---   is_zero:
---   |]
+foreign import ccall unsafe "sys/mman.h munmap"
+    munmap :: Ptr a -> CSize -> IO CInt
+
+
+executeMachineCode :: String -> IO ()
+executeMachineCode code = do
+    let memSize = length code
+    memPtr <- mmap nullPtr (fromIntegral memSize) (protRead .|. protExec .|. protWrite) (mapPrivate .|. mapAnon) (-1) 0
+    if memPtr == nullPtr
+        then putStrLn "Failed to allocate memory"
+        else do
+            putStrLn "Memory allocated successfully"
+            -- Fill memory with some executable code 
+            ptr <- newArray code
+            memcpy memPtr ptr (fromIntegral memSize)
+            -- Cast memory pointer to a function pointer and call the function
+            let funPtr = castPtrToFunPtr memPtr
+            result <- c_call funPtr
+            putStrLn $ "Function returned: " ++ show result
+            -- Clean up
+            result_unmap <- munmap memPtr (fromIntegral memSize)
+            if result_unmap /= 0
+                then putStrLn "Failed to unmap memory"
+                else putStrLn "Memory unmapped successfully"
+
+-- | C function to call the executable memory
+foreign import ccall unsafe "dynamic"
+  c_call :: FunPtr (IO Int) -> IO Int
+
+-- | memcpy C function
+foreign import ccall unsafe "string.h memcpy"
+  memcpy :: Ptr a -> Ptr b -> CSize -> IO ()
+
+-- | Constants for mmap
+protRead :: CInt
+protRead = 0x1
+
+protWrite :: CInt
+protWrite = 0x2
+
+protExec :: CInt
+protExec = 0x4
+
+mapPrivate :: CInt
+mapPrivate = 0x02
+
+mapAnon :: CInt
+mapAnon = 0x20
