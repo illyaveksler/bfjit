@@ -19,6 +19,7 @@ import Data.Char
 ----                                                                               ----
 
 -- ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| --
+brainfuckToML :: String -> String
 brainfuckToML code = bfCodeStringsCompile 
                         (bfApplyBackpatchHelper 
                             (bfTuplesToStrings 
@@ -56,13 +57,17 @@ charToBFC c
 
 
 ---- STRING TO INTERMEDIATE TUPLE REPRESENTATION (ITR)
+brainfuckToTuples :: String -> [(BFCommand, Int)]
 brainfuckToTuples [] = []
 brainfuckToTuples str = reverse (brainfuckToTuplesHelper (brainfuckOnly str) [] [])
 
+brainfuckOnly :: String -> String
 brainfuckOnly str = foldr (\x y -> if (elem x "<>+-.,[]") then x:y else y) [] str
 
-brainfuckToTuplesHelper [] out [] = out         -- FINISHED READING
-brainfuckToTuplesHelper [] out (hs:ts) = []     -- ERROR: MISMATCHED LOOPS
+brainfuckToTuplesHelper :: String -> [(BFCommand, Int)] -> [Int] -> [(BFCommand, Int)]
+brainfuckToTuplesHelper []    out [] = out         -- FINISHED READING
+brainfuckToTuplesHelper []    _   (_:_) = []       -- ERROR: MISMATCHED LOOPS
+brainfuckToTuplesHelper (_:_) []  (_:_) = []       -- how did you get here?
 
 brainfuckToTuplesHelper (hi:ti) [] []
     | (charToBFC hi) == BFInvalid = brainfuckToTuplesHelper ti 
@@ -109,6 +114,7 @@ brainfuckToTuplesHelper (hi:ti) (hr:tr) (hs:ts)
 
 ---- STRING->ITR HELPERS
 -- Replaces an intermediate tuple with another, for use in the middle of list building.
+bfTuplesReplaceAt :: [t] -> Int -> t -> [t]
 bfTuplesReplaceAt wipList pos val = listReplaceHelper wipList ((length wipList)-1-pos) val
 
 -- replaces a single element of a list at the given position.
@@ -142,33 +148,42 @@ bfcTupleToML tuple
 -- https://github.com/tsoding/bfjit
 -- ( https://github.com/tsoding/bfjit/blob/main/bfjit.c )
 
+incrValToML :: Int -> (String, Int, Int)
 incrValToML count = ("\x80\x07"++[chr (count .&. 255)],3, -1)
 
+decrValToML :: Int -> (String, Int, Int)
 decrValToML count = ("\x80\x2F"++[chr (count .&. 255)],3, -1)
 
+incrPtrToML :: Int -> (String, Int, Int)
 incrPtrToML count = ("\x48\x81\xC7"++(intToUInt32Bytes count),7, -1)
 
+decrPtrToML :: Int -> (String, Int, Int)
 decrPtrToML count = ("\x48\x81\xEF"++(intToUInt32Bytes count),7, -1)
 
+inpCharToML :: Int -> (String, Int, Int)
 inpCharToML count = (callMultiple ("",0,-1) count inputCall)
 
+outCharToML :: Int -> (String, Int, Int)
 outCharToML count = (callMultiple ("",0,-1) count outputCall)
 
+loopSttToML :: Int -> (String, Int, Int)
 loopSttToML index = ((fst loopStartCall), (snd loopStartCall), index)
 
+loopEndToML :: Int -> (String, Int, Int)
 loopEndToML index = ((fst loopStartCall), (snd loopEndCall), index)
 
 
 
 ---- TUPLE->MLS HELPERS AND INTERMEDIATE DATA
 callMultiple :: (String, Int, Int) -> Int -> (String, Int) -> (String, Int, Int)
-callMultiple result 0 input = result
+callMultiple result 0 _ = result
 callMultiple result count input = 
                 callMultiple (((fst_3 result) ++ (fst input)), 
                               ((snd_3 result)+(snd input)), 
                                 trd_3 result) 
                              (count-1) input
 
+intToUInt32Bytes :: Int -> String
 intToUInt32Bytes n = [
     (chr (n .&. 255)),
     (chr ((quot n 256) .&. 255)),
@@ -177,6 +192,7 @@ intToUInt32Bytes n = [
     ]
 
 -- read 0, pointer, 1
+inputCall :: (String, Int)
 inputCall = (("\x57" ++
               "\x48\xC7\xC0\x00\x00\x00\x00" ++
               "\x48\x89\xFE" ++
@@ -187,6 +203,7 @@ inputCall = (("\x57" ++
              28)
 
 -- write 1, pointer, 1
+outputCall :: (String, Int)
 outputCall = (("\x57" ++
                "\x48\xC7\xC0\x01\x00\x00\x00" ++
                "\x48\x89\xFE" ++
@@ -196,11 +213,13 @@ outputCall = (("\x57" ++
                "\x5F"),
               28)
               
+loopStartCall :: (String, Int)
 loopStartCall = (("\x8A\x07" ++
                   "\x84\xC0" ++
                   "\x0F\x84"),
                  10)
                  
+loopEndCall :: (String, Int)
 loopEndCall = (("\x8A\x07" ++
                 "\x84\xC0" ++
                 "\x0F\x85"),
@@ -211,9 +230,11 @@ loopEndCall = (("\x8A\x07" ++
 
 
 ---- INTERMEDIATE TUPLE REPRESENTATION TO MACHINE SNIPPET REPRESENTATION (MSR)
+bfTuplesToStrings :: [(BFCommand, Int)] -> ([String], [Int], [(Int, Int, Int)])
 bfTuplesToStrings [] = ([],[],[])
 bfTuplesToStrings lst = bfTuplesToStringsHelper (map bfcTupleToML lst) 0 0 ([],[],[])
 
+bfTuplesToStringsHelper :: [(String, Int, Int)] -> Int -> Int -> ([String], [Int], [(Int, Int, Int)]) -> ([String], [Int], [(Int, Int, Int)])
 bfTuplesToStringsHelper [] _ _ result = result
 bfTuplesToStringsHelper (ht:tt) cpos cindex (code, addrs, backpatches)
     | ((trd_3 ht) < 0) = bfTuplesToStringsHelper tt (cpos + (snd_3 ht)) (cindex+1) 
@@ -233,8 +254,13 @@ bfTuplesToStringsHelper (ht:tt) cpos cindex (code, addrs, backpatches)
                                            )
 
 ---- TRIPLET TUPLE ACCESSORS
+fst_3 :: (t0, t1, t2) -> t0
 fst_3 (x, _, _) = x
+
+snd_3 :: (t0, t1, t2) -> t1
 snd_3 (_, x, _) = x
+
+trd_3 :: (t0, t1, t2) -> t2
 trd_3 (_, _, x) = x
 
 
@@ -242,6 +268,7 @@ trd_3 (_, _, x) = x
 
 
 ---- MSR BACKPATCHING
+bfApplyBackpatchHelper :: ([String], [Int], [(Int, Int, Int)]) -> ([String], [Int], [(Int, Int, Int)])
 bfApplyBackpatchHelper ([], [], []) = ([], [], [])
 bfApplyBackpatchHelper (code, addrs, []) = (code, addrs, [])
 bfApplyBackpatchHelper (code, addrs, (hp:tp)) = 
@@ -275,5 +302,6 @@ listApplyAtHelper (hs:ts) pos f
 
 
 ---- FINAL BYTECODE COMPILATION
+bfCodeStringsCompile :: ([String], t0, t1) -> String
 bfCodeStringsCompile ([], _, _) = []
 bfCodeStringsCompile ((hc:tc), _, _) = hc ++ bfCodeStringsCompile (tc, [], [])
