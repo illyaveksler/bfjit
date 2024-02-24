@@ -12,6 +12,11 @@ import Data.Bits
 import Data.Char
 
 
+----                                                                               ----
+
+
+
+----                                                                               ----
 
 -- ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| --
 brainfuckToML code = bfCodeStringsCompile 
@@ -231,6 +236,7 @@ bfTuplesToStringsHelper (ht:tt) cpos cindex (code, addrs, backpatches)
 fst_3 (x, _, _) = x
 snd_3 (_, x, _) = x
 trd_3 (_, _, x) = x
+
 
 
 
