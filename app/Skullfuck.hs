@@ -13,9 +13,16 @@ import Data.Char
 
 
 ----                                                                               ----
-
-
-
+sfmain :: IO ()
+sfmain = do
+    putStrLn ("Enter your Brainfuck code:")
+    input <- getLine
+    putStrLn ("Enter your file name:")
+    fileNameRaw <- getLine
+    let fileName = (foldr (\x y -> if (elem x "<>:\"/\\|?*") then (y) else (x:y)) [] fileNameRaw)
+    let machineCode = (brainfuckToML input)
+    putStrLn ("Writing to " ++ fileName ++ ".com :")
+    if (machineCode == []) then (putStrLn ("No valid brainfuck code found.")) else (putStrLn (""))
 ----                                                                               ----
 
 -- ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| --
