@@ -7,11 +7,11 @@
 module MachineCode (executeMachineCode) where
 
 import Foreign.Ptr ( Ptr, FunPtr, castPtrToFunPtr, nullPtr )
-import Foreign.Marshal.Array ( newArray )
 
-import Foreign ( Bits((.|.)) )
+import Foreign ( Bits((.|.)), pokeArray, plusPtr )
 import Foreign.C.Types ( CInt(..), CSize(..) )
 import System.Posix.Types ( COff(..) )
+import Data.Foldable (forM_)
 
 foreign import ccall unsafe "sys/mman.h mmap"
     mmap :: Ptr a -> CSize -> CInt -> CInt -> CInt -> COff -> IO (Ptr ())
@@ -28,9 +28,10 @@ executeMachineCode code = do
         then putStrLn "Failed to allocate memory"
         else do
             putStrLn "Memory allocated successfully"
-            -- Fill memory with some executable code 
-            ptr <- newArray code
-            memcpy memPtr ptr (fromIntegral memSize)
+            -- Fill memory with some executable code
+            forM_ (zip [0..] code) $ \(i, c) -> do
+                pokeArray (memPtr `plusPtr` i) [c]
+            putStrLn "Memory copied successfully"
             -- Cast memory pointer to a function pointer and call the function
             let funPtr = castPtrToFunPtr memPtr
             result <- c_call funPtr
