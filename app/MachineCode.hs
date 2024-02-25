@@ -40,9 +40,7 @@ executeMachineCode code = do
                     -- Cast memory pointer to a function pointer and call the function
                     let funPtr = castPtrToFunPtr codeMPtr
                     putStrLn (show wmemPtr)
-                    result <- runCode funPtr wmemPtr -- MODIFY HERE: tsoding also passed in a section of allocated memory for the "tape" that the pointer moves along and modifies (essentially the only difference)
-                                    -- this worked for tsoding because the argument passed in was stored in rdi on compile; by passing in a pointer to alloc'd memory, the brainfuck pointer was set
-                                    -- and ready
+                    result <- runCode funPtr wmemPtr -- WE'RE DONE HERE (i think)
                     putStrLn $ "Function returned: " ++ show result
                     -- Clean up
                     res_unmap_wmemPtr <- munmap wmemPtr (fromIntegral jitMemoryCap)
