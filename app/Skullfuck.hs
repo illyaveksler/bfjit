@@ -8,6 +8,7 @@
 
 
 module Skullfuck where
+import qualified Data.ByteString.Char8 as BS
 import Data.Bits
 import Data.Char
 
@@ -19,10 +20,16 @@ sfmain = do
     input <- getLine
     putStrLn ("Enter your file name:")
     fileNameRaw <- getLine
-    let fileName = (foldr (\x y -> if (elem x "<>:\"/\\|?*") then (y) else (x:y)) [] fileNameRaw)
+    let fileName = (foldr (\x y -> if (elem x "<>:\"/\\|?*") 
+                                    then (y) 
+                                    else (x:y)) [] fileNameRaw)
     let machineCode = (brainfuckToML input)
     putStrLn ("Writing to " ++ fileName ++ ".com :")
-    if (machineCode == []) then (putStrLn ("No valid brainfuck code found.")) else (putStrLn (""))
+    if (machineCode == []) 
+        then (putStrLn ("No valid brainfuck code found.")) 
+        else do
+            BS.writeFile (fileName++".com") (BS.pack "\178\36\180\2\205\33\205\32")
+    
 ----                                                                               ----
 
 -- ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| --
@@ -312,3 +319,27 @@ listApplyAtHelper (hs:ts) pos f
 bfCodeStringsCompile :: ([String], t0, t1) -> String
 bfCodeStringsCompile ([], _, _) = []
 bfCodeStringsCompile ((hc:tc), _, _) = hc ++ bfCodeStringsCompile (tc, [], [])
+
+
+
+
+
+---- ELF writing
+elfHead =  ("\x7F\x45\x4C\x46"                 ++ "\x02"        ++ "\x01"             ++ "\x01\x00\x00"   ++                        "\x00\x00\x00\x00\x00x\x00\x00" ++
+            "\x02\x00"                         ++ "\x3E\x00"    ++ "\x01\x00\x00\x00" ++                                         "\x40\x00\x00\x00\x00\x00\x00\x00" ++
+            "\x40\x00\x00\x00\x00\x00\x00\x00" ++                                                                                "\xyy\xyy\xyy\xyy\xyy\xyy\xyy\xyy" ++ 
+            "\x00\x00\x00\x00"                 ++ "\x40\x00"    ++ "\x38\x00"         ++ "\x02\x00"       ++ "\x40\x00"          ++ "\xyy\xyy"       ++  "\xyy\xyy")
+--          7F ELF (magic num)                 ++ x64           ++  little-endian     ++ current ELF ver  ++                                                padding
+--          executable                         ++ AMD x86-64    ++  original ELF ver  ++                                                              entry at 0x40
+--          program header offset              ++                                                                                             section header offset
+--          architecture flags                 ++ 64-bit header ++  52 byte x64 phead ++ 2 sections phead ++ 64-bit header entry ++ n sections shead ++ shstr index
+
+progHead = ("\x01\x00\x00\x00"                 ++ "\x01\x00\x00\x00" ++        "\x00\x00\x00\x00\x00\x00\x00\x00" ++
+            "\x00\x00\x00\x00\x00\x00\x00\x08" ++                              "\x00\x00\x00\x00\x00\x00\x00\x08" ++
+            "\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA" ++                              "\xBB\xBB\xBB\xBB\xBB\xBB\xBB\xBB" ++
+            "\x00\x00\x00\x00\x00\x00\x00\x00")
+--          loadable segment                   ++ read+exec  segment ++                       zero program offset
+--          0x0800 0000 0000 0000 vaddr memory ++                             0x0800000000000000 phys addr memory
+--          program segment size on file       ++                                          program size on memory
+--          program alignment                                                       (p_vaddr = p_offset + p_align)
+
