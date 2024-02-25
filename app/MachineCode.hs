@@ -7,7 +7,7 @@ module MachineCode (executeMachineCode) where
 
 import Foreign.Ptr ( Ptr, FunPtr, castPtrToFunPtr, nullPtr )
 
-import Foreign ( Bits((.|.)), pokeArray, plusPtr )
+import Foreign ( Bits((.|.)), pokeArray, plusPtr, callocBytes, free )
 import Foreign.C.Types ( CInt(..), CSize(..) )
 import System.Posix.Types ( COff(..) )
 import Data.Foldable (forM_)
@@ -37,13 +37,17 @@ executeMachineCode code = do
                 then putStrLn "Failed to allocate working memory"
                 else do
                     putStrLn "Successfully allocated working memory"
+                    putStrLn "Making sure working memory is clear..."
+                    forM_ [0..jitMemoryCap] $ \i -> do
+                        pokeArray (wmemPtr `plusPtr` i) ['\x00']
+                    putStrLn "Done!"
                     -- Cast memory pointer to a function pointer and call the function
                     let funPtr = castPtrToFunPtr codeMPtr
-                    putStrLn (show wmemPtr)
-                    result <- runCode funPtr wmemPtr -- WE'RE DONE HERE I THINK: tsoding also passed in a section of allocated memory for the "tape" that the pointer moves along and modifies (essentially the only difference)
-                                    -- this worked for tsoding because the argument passed in was stored in rdi on compile; by passing in a pointer to alloc'd memory, the brainfuck pointer was set
-                                    -- and ready
-                    putStrLn $ "Function returned: " ++ show result
+                    putStrLn "Running!"
+                    result <- runCode funPtr wmemPtr -- MODIFY HERE: tsoding also passed in a section of allocated memory for the "tape" that the pointer moves along and modifies (essentially the only difference)
+                                                     -- this worked for tsoding because the argument passed in was stored in rdi on compile; by passing in a pointer to alloc'd memory, the brainfuck pointer was set
+                                                     -- and ready
+                    putStrLn $ "\nFunction returned: " ++ show result
                     -- Clean up
                     res_unmap_wmemPtr <- munmap wmemPtr (fromIntegral jitMemoryCap)
                     if res_unmap_wmemPtr /= 0
@@ -53,7 +57,7 @@ executeMachineCode code = do
                             result_unmap <- munmap codeMPtr (fromIntegral memSize)
                             if result_unmap /= 0
                                 then putStrLn "Failed to unmap code memory"
-                                else putStrLn "code memory unmapped successfully"
+                                else putStrLn "Code memory unmapped successfully"
 
 -- | C function to call the executable memory
 foreign import ccall unsafe "dynamic"
