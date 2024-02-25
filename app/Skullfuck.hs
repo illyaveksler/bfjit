@@ -24,11 +24,11 @@ sfmain = do
                                     then (y) 
                                     else (x:y)) [] fileNameRaw)
     let machineCode = (brainfuckToML input)
-    putStrLn ("Writing to " ++ fileName ++ ".com :")
+    putStrLn ("Writing to " ++ fileName ++ ".elf :")
     if (machineCode == []) 
         then (putStrLn ("No valid brainfuck code found.")) 
         else do
-            BS.writeFile (fileName++".com") (BS.pack "\178\36\180\2\205\33\205\32")
+            BS.writeFile (fileName++".elf") (BS.pack (compileMLtoELF machineCode))
     
 ----                                                                               ----
 
@@ -200,9 +200,9 @@ callMultiple result count input =
 intToUInt32Bytes :: Int -> String
 intToUInt32Bytes n = [
     (chr (n .&. 255)),
-    (chr ((quot n 256) .&. 255)),
-    (chr ((quot n 65536) .&. 255)),
-    (chr ((quot n 16777216) .&. 255))
+    (chr ((shift n (-8)) .&. 255)),
+    (chr ((shift n (-16)) .&. 255)),
+    (chr ((shift n (-24)) .&. 255))
     ]
 
 -- read 0, pointer, 1
@@ -337,10 +337,10 @@ elfHead1 =     ("\x7F\x45\x4C\x46"                 ++ "\x02"        ++ "\x01"   
 -- SUBSECTION TOTAL 48 BYTES || RUNNING TOTAL  48 BYTES (0x30) || ADDRESS 0x0800 0000 0000 0000 - 0x0800 0000 0000 002f
 
 elfHead2 :: String
-elfHead2 =     ("\x00\x00\x00\x00"                 ++ "\x40\x00"    ++ "\x38\x00"         ++ "\x02\x00"       ++ "\x40\x00")
--- 12 bytes     processor flags                    ++ 64-bit header ++  52 byte x64 phead ++ 2 sections phead ++ 64-bit header entry
--- ADD:                                                                         n sections in sect head table ++ section header name section index
--- (2 bytes + 2 bytes)
+elfHead2 =     ("\x00\x00\x00\x00"                 ++ "\x40\x00"    ++ "\x38\x00"         ++ "\x01\x00"       ++ "\x40\x00" ++
+                                                                                             "\x02\x00"       ++ "\x01\x00")
+-- 12 bytes     processor flags                    ++ 64-bit header ++  56 byte x64 phead ++ 2 sections phead ++ 64-bit header entry
+--                                                                              n sections in sect head table ++ section header name section index
 -- SUBSECTION TOTAL 16 BYTES || RUNNING TOTAL  64 BYTES (0x40) || ADDRESS 0x0800 0000 0000 0030 - 0x0800 0000 0000 003f
 
 
@@ -355,11 +355,10 @@ progHead1 =    ("\x01\x00\x00\x00"                 ++ "\x01\x00\x00\x00" ++     
 -- SUBSECTION TOTAL 48 BYTES || RUNNING TOTAL 112 BYTES (0x70) || ADDRESS 0x0800 0000 0000 0040 - 0x0800 0000 0000 006f
 
 progHead2 :: String
-progHead2 =    ("\x00\x00\x00\x00\x00\x00\x00\x00")
--- 8 bytes      program alignment                                                       (p_vaddr = p_offset + p_align)
--- SUBSECTION TOTAL  8 BYTES || RUNNING TOTAL 126 BYTES (0x78) || ADDRESS 0x0800 0000 0000 0070 - 0x0800 0000 0000 0077
+progHead2 =    ("\x00\x00\x00\x00\x00\x00\x00\x00"                       ++        "\x00\x00\x00\x00\x00\x00x\00\x00")
+-- 16 bytes      program alignment - 0 (p_vaddr = p_offset + p_align)    ++                      padding 0x78 -> 0x7f
+-- SUBSECTION TOTAL 16 BYTES || RUNNING TOTAL 128 BYTES (0x7f) || ADDRESS 0x0800 0000 0000 0070 - 0x0800 0000 0000 007f
 
--- ADD EIGHT BYTES PADDING (0x0800 0000 0000 0077 -> 0x0800 0000 0000 007f READY FOR CODE)
 
 
 
@@ -410,3 +409,50 @@ sectText2 =    (                                              "\x00\x00\x00\x00"
 -- 24 bytes                                                    link - none                        ++                               other info - none
 --              no alignment                               ++ not fixed size
 -- SUBSECTION TOTAL 24 BYTES || FOURTH TOTAL 64 BYTES
+
+
+
+intToUInt64Bytes :: Integer -> String
+intToUInt64Bytes n = [
+    (chr (fromInteger (n .&. 255))),
+    (chr (fromInteger ((shift n ( -8)) .&. 255))),
+    (chr (fromInteger ((shift n (-16)) .&. 255))),
+    (chr (fromInteger ((shift n (-24)) .&. 255))),
+    
+    (chr (fromInteger ((shift n (-32)) .&. 255))),
+    (chr (fromInteger ((shift n (-40)) .&. 255))),
+    (chr (fromInteger ((shift n (-48)) .&. 255))),
+    (chr (fromInteger ((shift n (-56)) .&. 255)))
+    ]
+
+
+
+compileMLtoELF :: String -> String
+compileMLtoELF mlstr = compileMLtoELFHelper (padML mlstr) (toInteger (padSize mlstr))
+
+compileMLtoELFHelper :: String -> Integer -> String
+compileMLtoELFHelper padprog padsize =  elfHead1 ++
+                                        intToUInt64Bytes (padsize + 16 + 128) ++       -- program size + 16 (names section size) + 128 (header size)
+                                        elfHead2 ++ 
+                                        progHead1 ++
+                                        intToUInt64Bytes (padsize) ++                  -- program size
+                                        intToUInt64Bytes (padsize) ++                  -- program size
+                                        progHead2 ++
+                                        padprog ++                                     -- padded mlstr
+                                        sectNames ++
+                                        sectHStrTab1 ++
+                                        intToUInt64Bytes (padsize + 128) ++            -- program size + 128 (header size)
+                                        sectHStrTab2 ++
+                                        sectText1 ++
+                                        intToUInt64Bytes (padsize) ++                  -- program size
+                                        sectText2
+
+padML mlstr = mlstr++(listRepeat '\x00' (padSize mlstr))
+
+listRepeat :: a -> Int -> [a]
+listRepeat item 0 = []
+listRepeat item n = item:(listRepeat item (n-1))
+
+padSize mlstr
+    | (rem (length mlstr) 64 == 0) = ((length mlstr) + 64)
+    | otherwise = ((quot (length mlstr) 64) + 1) * 64
