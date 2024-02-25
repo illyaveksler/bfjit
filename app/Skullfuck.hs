@@ -325,21 +325,80 @@ bfCodeStringsCompile ((hc:tc), _, _) = hc ++ bfCodeStringsCompile (tc, [], [])
 
 
 ---- ELF writing
-elfHead =  ("\x7F\x45\x4C\x46"                 ++ "\x02"        ++ "\x01"             ++ "\x01\x00\x00"   ++                        "\x00\x00\x00\x00\x00x\x00\x00" ++
-            "\x02\x00"                         ++ "\x3E\x00"    ++ "\x01\x00\x00\x00" ++                                         "\x40\x00\x00\x00\x00\x00\x00\x00" ++
-            "\x40\x00\x00\x00\x00\x00\x00\x00" ++                                                                                "\xyy\xyy\xyy\xyy\xyy\xyy\xyy\xyy" ++ 
-            "\x00\x00\x00\x00"                 ++ "\x40\x00"    ++ "\x38\x00"         ++ "\x02\x00"       ++ "\x40\x00"          ++ "\xyy\xyy"       ++  "\xyy\xyy")
---          7F ELF (magic num)                 ++ x64           ++  little-endian     ++ current ELF ver  ++                                                padding
---          executable                         ++ AMD x86-64    ++  original ELF ver  ++                                                              entry at 0x40
---          program header offset              ++                                                                                             section header offset
---          architecture flags                 ++ 64-bit header ++  52 byte x64 phead ++ 2 sections phead ++ 64-bit header entry ++ n sections shead ++ shstr index
+elfHead1 =     ("\x7F\x45\x4C\x46"                 ++ "\x02"        ++ "\x01"             ++ "\x01\x00\x00"   ++  "\x00\x00\x00\x00\x00x\x00\x00" ++
+                "\x02\x00"                         ++ "\x3E\x00"    ++ "\x01\x00\x00\x00" ++                   "\x80\x00\x00\x00\x00\x00\x00\x08" ++
+                "\x40\x00\x00\x00\x00\x00\x00\x00")
+-- 40 bytes     7F ELF (magic num)                 ++ x64           ++  little-endian     ++ current ELF ver  ++                          padding
+--              executable                         ++ AMD x86-64    ++  original ELF ver  ++                       entry at 0x0800 0000 0000 0080
+--              program header at 0x40
+-- ADD:                                                                                                                     section header offset
+-- (8 bytes)
+-- SUBSECTION TOTAL 48 BYTES || RUNNING TOTAL  48 BYTES (0x30) || ADDRESS 0x0800 0000 0000 0000 - 0x0800 0000 0000 002f
 
-progHead = ("\x01\x00\x00\x00"                 ++ "\x01\x00\x00\x00" ++        "\x00\x00\x00\x00\x00\x00\x00\x00" ++
-            "\x00\x00\x00\x00\x00\x00\x00\x08" ++                              "\x00\x00\x00\x00\x00\x00\x00\x08" ++
-            "\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA" ++                              "\xBB\xBB\xBB\xBB\xBB\xBB\xBB\xBB" ++
-            "\x00\x00\x00\x00\x00\x00\x00\x00")
---          loadable segment                   ++ read+exec  segment ++                       zero program offset
---          0x0800 0000 0000 0000 vaddr memory ++                             0x0800000000000000 phys addr memory
---          program segment size on file       ++                                          program size on memory
---          program alignment                                                       (p_vaddr = p_offset + p_align)
+elfhead2 =     ("\x00\x00\x00\x00"                 ++ "\x40\x00"    ++ "\x38\x00"         ++ "\x02\x00"       ++ "\x40\x00")
+-- 12 bytes     processor flags                    ++ 64-bit header ++  52 byte x64 phead ++ 2 sections phead ++ 64-bit header entry
+-- ADD:                                                                         n sections in sect head table ++ section header name section index
+-- (2 bytes + 2 bytes)
+-- SUBSECTION TOTAL 16 BYTES || RUNNING TOTAL  64 BYTES (0x40) || ADDRESS 0x0800 0000 0000 0030 - 0x0800 0000 0000 003f
 
+
+
+progHead1 =    ("\x01\x00\x00\x00"                 ++ "\x01\x00\x00\x00" ++        "\x00\x00\x00\x00\x00\x00\x00\x00" ++
+                "\x00\x00\x00\x00\x00\x00\x00\x08" ++                              "\x00\x00\x00\x00\x00\x00\x00\x08")
+-- 32 bytes     loadable segment                   ++ read+exec  segment ++                       zero program offset
+--              0x0800 0000 0000 0000 vaddr memory ++                          0x0800 0000 0000 0000 phys addr memory
+-- ADD:         program segment size on file       ++                                          program size on memory
+-- (8 bytes + 8 bytes)
+-- SUBSECTION TOTAL 48 BYTES || RUNNING TOTAL 112 BYTES (0x70) || ADDRESS 0x0800 0000 0000 0040 - 0x0800 0000 0000 006f
+
+progHead2 =    ("\x00\x00\x00\x00\x00\x00\x00\x00")
+-- 8 bytes      program alignment                                                       (p_vaddr = p_offset + p_align)
+-- SUBSECTION TOTAL  8 BYTES || RUNNING TOTAL 126 BYTES (0x78) || ADDRESS 0x0800 0000 0000 0070 - 0x0800 0000 0000 0077
+
+-- ADD EIGHT BYTES PADDING (0x0800 0000 0000 0077 -> 0x0800 0000 0000 007f READY FOR CODE)
+
+
+
+
+
+
+
+sectNames =    ("\x2Eshstrtab\x00"   ++ "\x2Etext\x00")
+-- 16 bytes     .shstrtab (10 bytes) ++ .text (6 bytes)
+-- SUBSECTION TOTAL 16 BYTES || SECOND TOTAL 16 BYTES 
+
+sectHStrTab1 = ("\x00\x00\x00\x00"   ++ "\x03\x00\x00\x00" ++ "\x00\x00\x00\x00\x00\x00\x00\x00" ++              "\x00\x00\x00\x00\x00\x00\x00\x00")
+-- 24 bytes     name offset zero     ++ String table       ++ no flags                           ++                          n on-loading (no addr)
+-- ADD:         section offset in data
+-- (8 bytes)
+-- SUBSECTION TOTAL 32 BYTES || THIRD TOTAL 32 BYTES
+
+sectHStrTab2 - ("\x10\x00\x00\x00\x00\x00\x00\x00"         ++ "\x00\x00\x00\x00"                 ++                              "\x00\x00\x00\x00" ++
+                "\x00\x00\x00\x00\x00\x00\x00\x00"         ++ "\x00\x00\x00\x00\x00\x00\x00\x00")
+-- 16 bytes     16 byte size                               ++ link - none                        ++                               other info - none
+--              no alignment                               ++ not fixed size
+-- SUBSECTION TOTAL 32 BYTES || THIRD TOTAL 64 BYTES
+
+
+
+
+
+sectText1 =    ("\x0a\x00\x00\x00"   ++ "\x01\x00\x00\x00" ++ "\x06\x00\x00\x00\x00\x00\x00\x00" ++              "\x80\x00\x00\x00\x00\x00\x00\x08" ++
+                "\x80\x00\x00\x00\x00\x00\x00\x00")
+-- 32 bytes     name offset 10       ++ program            ++ occupies memory, executable        ++ virtual memory address at 0x0800 0000 0000 0080
+--              offset 0x80
+-- SUBSECTION TOTAL 32 BYTES || FOURTH TOTAL 32 BYTES
+
+
+
+-- ADD:         size of code section
+-- (8 bytes)
+-- SUBSECTION TOTAL  8 BYTES || FOURTH TOTAL 40 BYTES
+
+
+
+sectText2 =    (                                              "\x00\x00\x00\x00"                 ++                              "\x00\x00\x00\x00" ++
+                "\x00\x00\x00\x00\x00\x00\x00\x00"         ++ "\x00\x00\x00\x00\x00\x00\x00\x00")
+-- 24 bytes                                                    link - none                        ++                               other info - none
+--              no alignment                               ++ not fixed size
+-- SUBSECTION TOTAL 24 BYTES || FOURTH TOTAL 64 BYTES
