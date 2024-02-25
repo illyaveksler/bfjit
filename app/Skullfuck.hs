@@ -326,7 +326,7 @@ bfCodeStringsCompile ((hc:tc), _, _) = hc ++ bfCodeStringsCompile (tc, [], [])
 
 ---- ELF writing
 elfHead1 :: String
-elfHead1 =     ("\x7F\x45\x4C\x46"                 ++ "\x02"        ++ "\x01"             ++ "\x01\x00\x00"   ++  "\x00\x00\x00\x00\x00x\x00\x00" ++
+elfHead1 =     ("\x7F\x45\x4C\x46"                 ++ "\x02"        ++ "\x01"             ++ "\x01\x00\x00"   ++   "\x00\x00\x00\x00\x00\x00\x00" ++
                 "\x02\x00"                         ++ "\x3E\x00"    ++ "\x01\x00\x00\x00" ++                   "\x80\x00\x00\x00\x00\x00\x00\x08" ++
                 "\x40\x00\x00\x00\x00\x00\x00\x00")
 -- 40 bytes     7F ELF (magic num)                 ++ x64           ++  little-endian     ++ current ELF ver  ++                          padding
@@ -355,7 +355,7 @@ progHead1 =    ("\x01\x00\x00\x00"                 ++ "\x01\x00\x00\x00" ++     
 -- SUBSECTION TOTAL 48 BYTES || RUNNING TOTAL 112 BYTES (0x70) || ADDRESS 0x0800 0000 0000 0040 - 0x0800 0000 0000 006f
 
 progHead2 :: String
-progHead2 =    ("\x00\x00\x00\x00\x00\x00\x00\x00"                       ++        "\x00\x00\x00\x00\x00\x00x\00\x00")
+progHead2 =    ("\x00\x00\x00\x00\x00\x00\x00\x00"                       ++        "\x00\x00\x00\x00\x00\x00\x00\x00")
 -- 16 bytes      program alignment - 0 (p_vaddr = p_offset + p_align)    ++                      padding 0x78 -> 0x7f
 -- SUBSECTION TOTAL 16 BYTES || RUNNING TOTAL 128 BYTES (0x7f) || ADDRESS 0x0800 0000 0000 0070 - 0x0800 0000 0000 007f
 
