@@ -334,14 +334,14 @@ elfHead1 =     ("\x7F\x45\x4C\x46"                 ++ "\x02"        ++ "\x01"   
 --              program header at 0x40
 -- ADD:                                                                                                                     section header offset
 -- (8 bytes)
--- SUBSECTION TOTAL 48 BYTES || RUNNING TOTAL  48 BYTES (0x30) || ADDRESS 0x0800 0000 0000 0000 - 0x0800 0000 0000 002f
+-- SUBSECTION TOTAL 48 BYTES || RUNNING TOTAL  48 BYTES (0x30) || ADDRESS 0x0000 0000 0400 0000 - 0x0000 0000 0400 002f
 
 elfHead2 :: String
 elfHead2 =     ("\x00\x00\x00\x00"                 ++ "\x40\x00"    ++ "\x38\x00"         ++ "\x01\x00"       ++ "\x40\x00" ++
                                                                                              "\x02\x00"       ++ "\x01\x00")
 -- 12 bytes     processor flags                    ++ 64-bit header ++  56 byte x64 phead ++ 2 sections phead ++ 64-bit header entry
 --                                                                              n sections in sect head table ++ section header name section index
--- SUBSECTION TOTAL 16 BYTES || RUNNING TOTAL  64 BYTES (0x40) || ADDRESS 0x0800 0000 0000 0030 - 0x0800 0000 0000 003f
+-- SUBSECTION TOTAL 16 BYTES || RUNNING TOTAL  64 BYTES (0x40) || ADDRESS 0x0000 0000 0400 0030 - 0x0000 0000 0400 003f
 
 
 
@@ -352,12 +352,12 @@ progHead1 =    ("\x01\x00\x00\x00"                 ++ "\x01\x00\x00\x00" ++     
 --              0x0000 0000 0400 0000 vaddr memory ++                          0x0000 0000 0400 0000 phys addr memory
 -- ADD:         program segment size on file       ++                                          program size on memory
 -- (8 bytes + 8 bytes)
--- SUBSECTION TOTAL 48 BYTES || RUNNING TOTAL 112 BYTES (0x70) || ADDRESS 0x0800 0000 0000 0040 - 0x0800 0000 0000 006f
+-- SUBSECTION TOTAL 48 BYTES || RUNNING TOTAL 112 BYTES (0x70) || ADDRESS 0x0000 0000 0400 0040 - 0x0000 0000 0400 006f
 
 progHead2 :: String
 progHead2 =    ("\x00\x00\x00\x00\x00\x00\x00\x00"                       ++        "\x00\x00\x00\x00\x00\x00\x00\x00")
 -- 16 bytes      program alignment - 0 (p_vaddr = p_offset + p_align)    ++                      padding 0x78 -> 0x7f
--- SUBSECTION TOTAL 16 BYTES || RUNNING TOTAL 128 BYTES (0x7f) || ADDRESS 0x0800 0000 0000 0070 - 0x0800 0000 0000 007f
+-- SUBSECTION TOTAL 16 BYTES || RUNNING TOTAL 128 BYTES (0x7f) || ADDRESS 0x0000 0000 0400 0070 - 0x0000 0000 0400 007f
 
 
 
@@ -389,9 +389,9 @@ sectHStrTab2 = ("\x10\x00\x00\x00\x00\x00\x00\x00"         ++ "\x00\x00\x00\x00"
 
 
 sectText1 :: String
-sectText1 =    ("\x0a\x00\x00\x00"   ++ "\x01\x00\x00\x00" ++ "\x06\x00\x00\x00\x00\x00\x00\x00" ++              "\x80\x00\x00\x00\x00\x00\x00\x08" ++
+sectText1 =    ("\x0a\x00\x00\x00"   ++ "\x01\x00\x00\x00" ++ "\x06\x00\x00\x00\x00\x00\x00\x00" ++              "\x80\x00\x00\x04\x00\x00\x00\x00" ++
                 "\x80\x00\x00\x00\x00\x00\x00\x00")
--- 32 bytes     name offset 10       ++ program            ++ occupies memory, executable        ++ virtual memory address at 0x0800 0000 0000 0080
+-- 32 bytes     name offset 10       ++ program            ++ occupies memory, executable        ++ virtual memory address at 0x0800 0000 0400 0000
 --              offset 0x80
 -- SUBSECTION TOTAL 32 BYTES || FOURTH TOTAL 32 BYTES
 
