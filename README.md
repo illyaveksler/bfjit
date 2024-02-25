@@ -1,3 +1,3 @@
 # bfjit
 
-## NOTE: use `cabal repl` instead of `ghci`
+## NOTE: use `ghci wrapper.o` instead of just `ghci`
