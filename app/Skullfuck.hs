@@ -34,10 +34,10 @@ sfmain = do
 
 -- ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| --
 brainfuckToML :: String -> String
-brainfuckToML code = bfCodeStringsCompile 
+brainfuckToML code = (bfCodeStringsCompile 
                         (bfApplyBackpatchHelper 
                             (bfTuplesToStrings 
-                                (brainfuckToTuples code)))
+                                (brainfuckToTuples code)))) ++ "\xC3"
 -- ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| --
 
 
@@ -325,6 +325,7 @@ bfCodeStringsCompile ((hc:tc), _, _) = hc ++ bfCodeStringsCompile (tc, [], [])
 
 
 ---- ELF writing
+elfHead1 :: String
 elfHead1 =     ("\x7F\x45\x4C\x46"                 ++ "\x02"        ++ "\x01"             ++ "\x01\x00\x00"   ++  "\x00\x00\x00\x00\x00x\x00\x00" ++
                 "\x02\x00"                         ++ "\x3E\x00"    ++ "\x01\x00\x00\x00" ++                   "\x80\x00\x00\x00\x00\x00\x00\x08" ++
                 "\x40\x00\x00\x00\x00\x00\x00\x00")
@@ -335,7 +336,8 @@ elfHead1 =     ("\x7F\x45\x4C\x46"                 ++ "\x02"        ++ "\x01"   
 -- (8 bytes)
 -- SUBSECTION TOTAL 48 BYTES || RUNNING TOTAL  48 BYTES (0x30) || ADDRESS 0x0800 0000 0000 0000 - 0x0800 0000 0000 002f
 
-elfhead2 =     ("\x00\x00\x00\x00"                 ++ "\x40\x00"    ++ "\x38\x00"         ++ "\x02\x00"       ++ "\x40\x00")
+elfHead2 :: String
+elfHead2 =     ("\x00\x00\x00\x00"                 ++ "\x40\x00"    ++ "\x38\x00"         ++ "\x02\x00"       ++ "\x40\x00")
 -- 12 bytes     processor flags                    ++ 64-bit header ++  52 byte x64 phead ++ 2 sections phead ++ 64-bit header entry
 -- ADD:                                                                         n sections in sect head table ++ section header name section index
 -- (2 bytes + 2 bytes)
@@ -343,6 +345,7 @@ elfhead2 =     ("\x00\x00\x00\x00"                 ++ "\x40\x00"    ++ "\x38\x00
 
 
 
+progHead1 :: String
 progHead1 =    ("\x01\x00\x00\x00"                 ++ "\x01\x00\x00\x00" ++        "\x00\x00\x00\x00\x00\x00\x00\x00" ++
                 "\x00\x00\x00\x00\x00\x00\x00\x08" ++                              "\x00\x00\x00\x00\x00\x00\x00\x08")
 -- 32 bytes     loadable segment                   ++ read+exec  segment ++                       zero program offset
@@ -351,6 +354,7 @@ progHead1 =    ("\x01\x00\x00\x00"                 ++ "\x01\x00\x00\x00" ++     
 -- (8 bytes + 8 bytes)
 -- SUBSECTION TOTAL 48 BYTES || RUNNING TOTAL 112 BYTES (0x70) || ADDRESS 0x0800 0000 0000 0040 - 0x0800 0000 0000 006f
 
+progHead2 :: String
 progHead2 =    ("\x00\x00\x00\x00\x00\x00\x00\x00")
 -- 8 bytes      program alignment                                                       (p_vaddr = p_offset + p_align)
 -- SUBSECTION TOTAL  8 BYTES || RUNNING TOTAL 126 BYTES (0x78) || ADDRESS 0x0800 0000 0000 0070 - 0x0800 0000 0000 0077
@@ -363,17 +367,20 @@ progHead2 =    ("\x00\x00\x00\x00\x00\x00\x00\x00")
 
 
 
+sectNames :: String
 sectNames =    ("\x2Eshstrtab\x00"   ++ "\x2Etext\x00")
 -- 16 bytes     .shstrtab (10 bytes) ++ .text (6 bytes)
 -- SUBSECTION TOTAL 16 BYTES || SECOND TOTAL 16 BYTES 
 
+sectHStrTab1 :: String
 sectHStrTab1 = ("\x00\x00\x00\x00"   ++ "\x03\x00\x00\x00" ++ "\x00\x00\x00\x00\x00\x00\x00\x00" ++              "\x00\x00\x00\x00\x00\x00\x00\x00")
 -- 24 bytes     name offset zero     ++ String table       ++ no flags                           ++                          n on-loading (no addr)
 -- ADD:         section offset in data
 -- (8 bytes)
 -- SUBSECTION TOTAL 32 BYTES || THIRD TOTAL 32 BYTES
 
-sectHStrTab2 - ("\x10\x00\x00\x00\x00\x00\x00\x00"         ++ "\x00\x00\x00\x00"                 ++                              "\x00\x00\x00\x00" ++
+sectHStrTab2 :: String
+sectHStrTab2 = ("\x10\x00\x00\x00\x00\x00\x00\x00"         ++ "\x00\x00\x00\x00"                 ++                              "\x00\x00\x00\x00" ++
                 "\x00\x00\x00\x00\x00\x00\x00\x00"         ++ "\x00\x00\x00\x00\x00\x00\x00\x00")
 -- 16 bytes     16 byte size                               ++ link - none                        ++                               other info - none
 --              no alignment                               ++ not fixed size
@@ -382,7 +389,7 @@ sectHStrTab2 - ("\x10\x00\x00\x00\x00\x00\x00\x00"         ++ "\x00\x00\x00\x00"
 
 
 
-
+sectText1 :: String
 sectText1 =    ("\x0a\x00\x00\x00"   ++ "\x01\x00\x00\x00" ++ "\x06\x00\x00\x00\x00\x00\x00\x00" ++              "\x80\x00\x00\x00\x00\x00\x00\x08" ++
                 "\x80\x00\x00\x00\x00\x00\x00\x00")
 -- 32 bytes     name offset 10       ++ program            ++ occupies memory, executable        ++ virtual memory address at 0x0800 0000 0000 0080
@@ -397,6 +404,7 @@ sectText1 =    ("\x0a\x00\x00\x00"   ++ "\x01\x00\x00\x00" ++ "\x06\x00\x00\x00\
 
 
 
+sectText2 :: String
 sectText2 =    (                                              "\x00\x00\x00\x00"                 ++                              "\x00\x00\x00\x00" ++
                 "\x00\x00\x00\x00\x00\x00\x00\x00"         ++ "\x00\x00\x00\x00\x00\x00\x00\x00")
 -- 24 bytes                                                    link - none                        ++                               other info - none
