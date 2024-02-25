@@ -7,7 +7,7 @@ module MachineCode (executeMachineCode) where
 
 import Foreign.Ptr ( Ptr, FunPtr, castPtrToFunPtr, nullPtr )
 
-import Foreign ( Bits((.|.)), pokeArray, plusPtr, callocBytes, free )
+import Foreign ( Bits((.|.)), pokeArray, plusPtr )
 import Foreign.C.Types ( CInt(..), CSize(..) )
 import System.Posix.Types ( COff(..) )
 import Data.Foldable (forM_)
