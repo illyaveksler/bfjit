@@ -23,21 +23,23 @@ foreign import ccall unsafe "sys/mman.h munmap"
 executeMachineCode :: String -> IO ()
 executeMachineCode code = do
     let memSize = length code
-    memPtr <- mmap nullPtr (fromIntegral memSize) (protRead .|. protExec .|. protWrite) (mapPrivate .|. mapAnon) (-1) 0
-    if memPtr == nullPtr
+    codeMPtr <- mmap nullPtr (fromIntegral memSize) (protRead .|. protExec .|. protWrite) (mapPrivate .|. mapAnon) (-1) 0
+    if codeMPtr == nullPtr
         then putStrLn "Failed to allocate memory"
         else do
             putStrLn "Memory allocated successfully"
             -- Fill memory with some executable code
             forM_ (zip [0..] code) $ \(i, c) -> do
-                pokeArray (memPtr `plusPtr` i) [c]
+                pokeArray (codeMPtr `plusPtr` i) [c]
             putStrLn "Memory copied successfully"
             -- Cast memory pointer to a function pointer and call the function
-            let funPtr = castPtrToFunPtr memPtr
-            result <- c_call funPtr -- MODIFY HERE: tsoding also passed in a section of allocated memory for the "tape" that the pointer moves along and modifies
+            let funPtr = castPtrToFunPtr codeMPtr
+            result <- c_call funPtr -- MODIFY HERE: tsoding also passed in a section of allocated memory for the "tape" that the pointer moves along and modifies (essentially the only difference)
+                                    -- this worked for tsoding because the argument passed in was stored in rdi on compile; by passing in a pointer to alloc'd memory, the brainfuck pointer was set
+                                    -- and ready
             putStrLn $ "Function returned: " ++ show result
             -- Clean up
-            result_unmap <- munmap memPtr (fromIntegral memSize)
+            result_unmap <- munmap codeMPtr (fromIntegral memSize)
             if result_unmap /= 0
                 then putStrLn "Failed to unmap memory"
                 else putStrLn "Memory unmapped successfully"
@@ -65,3 +67,7 @@ mapPrivate = 0x02
 
 mapAnon :: CInt
 mapAnon = 0x20
+
+jitMemoryCap :: Int
+jitMemoryCap = (10*1000*1000)
+
