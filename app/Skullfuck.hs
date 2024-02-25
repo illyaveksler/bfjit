@@ -327,10 +327,10 @@ bfCodeStringsCompile ((hc:tc), _, _) = hc ++ bfCodeStringsCompile (tc, [], [])
 ---- ELF writing
 elfHead1 :: String
 elfHead1 =     ("\x7F\x45\x4C\x46"                 ++ "\x02"        ++ "\x01"             ++ "\x01\x00\x00"   ++   "\x00\x00\x00\x00\x00\x00\x00" ++
-                "\x02\x00"                         ++ "\x3E\x00"    ++ "\x01\x00\x00\x00" ++                   "\x80\x00\x00\x00\x00\x00\x00\x08" ++
+                "\x02\x00"                         ++ "\x3E\x00"    ++ "\x01\x00\x00\x00" ++                   "\x80\x00\x00\x04\x00\x00\x00\x00" ++
                 "\x40\x00\x00\x00\x00\x00\x00\x00")
 -- 40 bytes     7F ELF (magic num)                 ++ x64           ++  little-endian     ++ current ELF ver  ++                          padding
---              executable                         ++ AMD x86-64    ++  original ELF ver  ++                       entry at 0x0800 0000 0000 0080
+--              executable                         ++ AMD x86-64    ++  original ELF ver  ++                       entry at 0x0000 0400 0000 0080
 --              program header at 0x40
 -- ADD:                                                                                                                     section header offset
 -- (8 bytes)
@@ -347,9 +347,9 @@ elfHead2 =     ("\x00\x00\x00\x00"                 ++ "\x40\x00"    ++ "\x38\x00
 
 progHead1 :: String
 progHead1 =    ("\x01\x00\x00\x00"                 ++ "\x01\x00\x00\x00" ++        "\x00\x00\x00\x00\x00\x00\x00\x00" ++
-                "\x00\x00\x00\x00\x00\x00\x00\x08" ++                              "\x00\x00\x00\x00\x00\x00\x00\x08")
+                "\x00\x00\x00\x04\x00\x00\x00\x00" ++                              "\x00\x00\x00\x04\x00\x00\x00\x00")
 -- 32 bytes     loadable segment                   ++ read+exec  segment ++                       zero program offset
---              0x0800 0000 0000 0000 vaddr memory ++                          0x0800 0000 0000 0000 phys addr memory
+--              0x0000 0000 0400 0000 vaddr memory ++                          0x0000 0000 0400 0000 phys addr memory
 -- ADD:         program segment size on file       ++                                          program size on memory
 -- (8 bytes + 8 bytes)
 -- SUBSECTION TOTAL 48 BYTES || RUNNING TOTAL 112 BYTES (0x70) || ADDRESS 0x0800 0000 0000 0040 - 0x0800 0000 0000 006f
@@ -447,7 +447,7 @@ compileMLtoELFHelper padprog padsize =  elfHead1 ++
                                         intToUInt64Bytes (padsize) ++                  -- program size
                                         sectText2
 
-padML mlstr = mlstr++(listRepeat '\x00' (padSize mlstr))
+padML mlstr = mlstr++(listRepeat '\x00' ((padSize mlstr) - (length mlstr)))
 
 listRepeat :: a -> Int -> [a]
 listRepeat item 0 = []
