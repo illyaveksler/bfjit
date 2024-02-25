@@ -165,7 +165,7 @@ loopSttToML :: Int -> (String, Int, Int)
 loopSttToML index = ((fst loopStartCall), (snd loopStartCall), index)
 
 loopEndToML :: Int -> (String, Int, Int)
-loopEndToML index = ((fst loopStartCall), (snd loopEndCall), index)
+loopEndToML index = ((fst loopEndCall), (snd loopEndCall), index)
 
 
 
