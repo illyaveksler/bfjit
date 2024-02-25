@@ -34,7 +34,7 @@ executeMachineCode code = do
             putStrLn "Memory copied successfully"
             -- Cast memory pointer to a function pointer and call the function
             let funPtr = castPtrToFunPtr memPtr
-            result <- c_call funPtr
+            result <- c_call funPtr -- MODIFY HERE: tsoding also passed in a section of allocated memory for the "tape" that the pointer moves along and modifies
             putStrLn $ "Function returned: " ++ show result
             -- Clean up
             result_unmap <- munmap memPtr (fromIntegral memSize)
