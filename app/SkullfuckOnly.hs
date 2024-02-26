@@ -242,7 +242,7 @@ bfTuplesToStringsHelper (ht:tt) cpos cindex (code, addrs, backpatches)
                                            
                                            (addrs ++ [cpos]),
                                            
-                                           (((cpos + (snd_3 ht)),
+                                           (((cpos + (snd_3 ht)), -- source address, destination index, patch index
                                              (trd_3 ht),
                                               cindex
                                              ):backpatches)
@@ -270,8 +270,8 @@ bfApplyBackpatchHelper (code, addrs, (hp:tp)) =
     bfApplyBackpatchHelper (
                             (listApplyAtHelper code (trd_3 hp) 
                                                (\x -> x ++ (intToUInt32Bytes 
-                                                            ((addrs!!(snd_3 hp)) -
-                                                             (fst_3 hp))))),
+                                                            ((addrs!!(snd_3 hp)) -   -- relative jump offset = destination index -- source address, 
+                                                             (fst_3 hp))))),         -- apply to patch index
                                     --                         ^
                                     -- This index accessing should probably be 
                                     -- addressed at some point since it's not

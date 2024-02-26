@@ -48,8 +48,8 @@ executeMachineCode code = do
                         let funPtr = castPtrToFunPtr codeMPtr
                         putStrLn "Running..."
                         result <- runCode funPtr wmemPtr -- MODIFY HERE: tsoding also passed in a section of allocated memory for the "tape" that the pointer moves along and modifies (essentially the only difference)
-                                                        -- this worked for tsoding because the argument passed in was stored in rdi on compile; by passing in a pointer to alloc'd memory, the brainfuck pointer was set
-                                                        -- and ready
+                                                         -- this worked for tsoding because the argument passed in was stored in rdi on compile; by passing in a pointer to alloc'd memory, the brainfuck pointer was set
+                                                         -- and ready
                         putStrLn $ "\nFunction returned: " ++ show result
                         -- Clean up
                         res_unmap_wmemPtr <- munmap wmemPtr (fromIntegral jitMemoryCap)
