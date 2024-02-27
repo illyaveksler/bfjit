@@ -17,4 +17,6 @@ main = do
 --    0f 05   syscall 
 --    c3      ret    
 --    executeMachineCode "\xc6\x44\x24\xfd\x36\xc6\x44\x24\xfe\x39\xc6\x44\x24\xff\x0a\x48\xc7\xc2\x03\x00\x00\x00\x48\x8d\x74\x24\xfd\x48\xc7\xc7\x01\x00\x00\x00\x48\xc7\xc0\x01\x00\x00\x00\x0f\x05\xc3"
-      executeMachineCode (brainfuckToML "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.")
+      putStrLn "Enter your code here:"
+      rawCode <- getLine
+      executeMachineCode (brainfuckToML rawCode)
